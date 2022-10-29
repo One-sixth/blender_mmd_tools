@@ -42,7 +42,8 @@ class MoveObject(Operator, utils.ItemMoveOp):
     def set_index(cls, obj, index):
         m = cls.__PREFIX_REGEXP.match(obj.name)
         name = m.group('name') if m else obj.name
-        obj.name = '%s_%s'%(utils.int2base(index, 36, 3), name)
+        # obj.name = '%s_%s'%(utils.int2base(index, 36, 3), name)
+        obj.name = f'{index:0>3}_{name}'
 
     @classmethod
     def get_name(cls, obj, prefix=None):
@@ -160,7 +161,7 @@ class SeparateByMaterials(Operator):
 
             # Store the current material names
             rig = mmd_model.Model(root)
-            mat_names = [getattr(mat, 'name', None) for mat in rig.materials()]
+            mat_names = [getattr(mat, 'name', None) for mat in rig.data_materials()]
             self.__separate_by_materials(obj)
             for mesh in rig.meshes():
                 FnMorph.clean_uv_morph_vertex_groups(mesh)

@@ -269,5 +269,11 @@ class MMDMaterial(bpy.types.PropertyGroup):
         description='Comment',
     )
 
+    is_select: bpy.props.BoolProperty(
+        name='Is Select',
+        description="Use for multi material select. (Hide Property. Used only for Blender's internal multi-select material operations.)",
+        default=False,
+    )
+
     def is_id_unique(self):
         return self.material_id < 0 or not next((m for m in bpy.data.materials if m.mmd_material != self and m.mmd_material.material_id == self.material_id), None)

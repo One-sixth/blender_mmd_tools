@@ -834,6 +834,43 @@ class Model:
         for mesh in self.meshes():
             materials.update((slot.material,0) for slot in mesh.material_slots if slot.material is not None)
         return list(materials.keys())
+    
+    def data_materials(self):
+        """
+        Helper method to list all data materials in all meshes
+        """
+        materials = {} # Use dict instead of set to guarantee preserve order
+        for mesh in self.meshes():
+            for data_mat in mesh.data.materials:
+                if data_mat is not None:
+                    materials.setdefault(data_mat, None)
+        return list(materials.keys())
+    
+    def get_mesh_materials_detail_table(self):
+        """
+        Get mesh material detail table.
+        [
+            [mesh_idx, mesh_obj, mesh_data, slot_idx, slot_link, obj_mat, data_mat],
+            [mesh_idx, mesh_obj, mesh_data, slot_idx, slot_link, obj_mat, data_mat], ...
+        ]
+        """
+        def get_obj_mat(slot: bpy.types.MaterialSlot):
+            old_link = slot.link
+            mat = slot.material
+            slot.link = old_link
+            return mat
+            
+        table = []
+        for mesh_idx, mesh_obj in enumerate(self.meshes()):
+            for slot_idx, slot in enumerate(mesh_obj.material_slots):
+                # item = [mesh_idx, mesh_obj, mesh_obj.data, slot_idx, slot.link, get_obj_mat(slot), mesh_obj.data.materials[slot_idx]]
+                item = dict(
+                    mesh_idx=mesh_idx, mesh_obj=mesh_obj, mesh_data=mesh_obj.data,
+                    slot_idx=slot_idx, slot_link=slot.link,
+                    obj_mat=get_obj_mat(slot), data_mat=mesh_obj.data.materials[slot_idx]
+                )
+                table.append(item)
+        return table
 
     def renameBone(self, old_bone_name, new_bone_name):
         if old_bone_name == new_bone_name:

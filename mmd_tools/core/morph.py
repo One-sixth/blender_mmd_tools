@@ -439,6 +439,10 @@ class _MorphSlider:
     def unbind(self):
         mmd_root = self.__rig.rootObject().mmd_root
 
+        # setting flag.
+        if 'mmd_tools_is_morph_bind' in self.__rig.rootObject():
+            del self.__rig.rootObject()['mmd_tools_is_morph_bind']
+
         # after unbind, the weird lag problem will disappear.
         mmd_root.morph_panel_show_settings = True
 
@@ -471,6 +475,9 @@ class _MorphSlider:
         obj = self.create()
         arm = self.__dummy_armature(obj, create=True)
         morph_sliders = obj.data.shape_keys.key_blocks
+
+        # Add a flag to indicate that the morph has been bind
+        root['mmd_tools_is_morph_bind'] = True
 
         # data gathering
         group_map = {}
@@ -567,6 +574,9 @@ class _MorphSlider:
                 if b.name.startswith('mmd_bind') and b.name not in used_bone_names:
                     edit_bones.remove(b)
 
+        from mmd_tools.core.model import Model
+        mesh_mat_detail_table = Model(root).get_mesh_materials_detail_table()
+
         material_offset_map = {}
         for m in mmd_root.material_morphs:
             morph_name = m.name.replace('"', '\\"')
@@ -576,9 +586,32 @@ class _MorphSlider:
             material_offset_map.setdefault('group_dict', {})[m.name] = (data_path, groups)
             for d in m.data:
                 d.name = name_bind = 'mmd_bind%s'%hash(d)
-                # add '#' before material name to avoid conflict with group_dict
-                table = material_offset_map.setdefault('#'+d.material, ([], []))
-                table[1 if d.offset_type == 'ADD' else 0].append((m.name, d, name_bind))
+                
+                # add obj_mat support here.
+                ## map table
+                ### start
+                ### if   link == OBJECT :
+                ###     if   morph_mat_name == obj_mat_name  : return obj_mat
+                ###     elif morph_mat_name == data_mat_name : return obj_mat
+                ### elif link == DATA   :
+                ###     if   morph_mat_name == data_mat_name : return data_mat
+                ### end
+                morph_mat_name = d.material
+                mat_names = set()
+                for row in mesh_mat_detail_table:
+                    if row['slot_link'] == 'OBJECT' and row['obj_mat'] is not None:
+                        if morph_mat_name == row['obj_mat'].name or\
+                           morph_mat_name == row['data_mat'].name:
+                            mat_names.add(row['obj_mat'].name)
+
+                    elif row['slot_link'] == 'DATA' and row['data_mat'] is not None:
+                        if morph_mat_name == row['data_mat'].name:
+                            mat_names.add(row['data_mat'].name)
+
+                for mat_name in mat_names:
+                    # add '#' before material name to avoid conflict with group_dict
+                    table = material_offset_map.setdefault('#'+mat_name, ([], []))
+                    table[1 if d.offset_type == 'ADD' else 0].append((m.name, d, name_bind))
 
         for m in mmd_root.group_morphs:
             if len(m.data) != len(set(m.data.keys())):
