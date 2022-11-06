@@ -85,6 +85,8 @@ def load_handler(_dummy):
 def save_pre_handler(_dummy):
     from mmd_tools.core.morph import MigrationFnMorph
     MigrationFnMorph.compatible_with_old_version_mmd_tools()
+    from mmd_tools.core.material_custom_node import MigrationFnCustomNode
+    MigrationFnCustomNode.del_all_aux_prop()
 
 def register():
     auto_load.register()
